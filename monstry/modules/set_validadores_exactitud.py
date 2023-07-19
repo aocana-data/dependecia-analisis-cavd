@@ -26,7 +26,7 @@ def set_validadores_exactitud(**kwargs):
         # ESTA VALIDACION TOMA EL VALOR POR DEFECTO QUE TIENE
         # LA DEPENDECIA
         BASE_DIR                 =     os.path.dirname(os.path.dirname(__file__))
-        path_funciones           =     os.path.join(BASE_DIR,self.PATH_DEFAULT)
+        path_funciones           =     os.path.join(BASE_DIR,PATH_DEFAULT)
 
     custom_functions    =   config.get("extra_custom_functions","")
       
@@ -37,7 +37,7 @@ def set_validadores_exactitud(**kwargs):
         with open(custom_functions,"r",encoding='latin-1') as  f:
             custom_functions = f.read()
 
-    data += f"\n\n{custom_functions_data}"
+    data += f"\n\n{custom_functions}"
     
     exec(data,globals())
     
