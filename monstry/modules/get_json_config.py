@@ -7,7 +7,7 @@ def get_config_files(path):
         return
         
     try:    
-        with open(path,"r") as config:
+        with open(path,"r", encoding="latin-1") as config:
             config_file = json.load(config)
 
         return config_file
