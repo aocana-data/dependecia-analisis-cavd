@@ -142,22 +142,25 @@ def matcher_regexp(regexp_list , sample, columna):
 
 
 def request_not_na_value(dataframe,col):
+    
     dataframe =  dataframe.dropna(how='all',axis=0,inplace=False)
-
     dataframe = dataframe.astype('str')
 
     if len(dataframe) == 0 :
         
-        print(f'El SubDataset es vacio con columnas: {col}')
+        print(f'''
+        --!--> SUBSET vacio  >> columnas: {col}
+        ''')
+        
         return ''
 
-    sample = dataframe.sample(n=1)
+    sample = dataframe.sample(n=1).str.strip()
 
     [validador,*extra] = sample.isna().to_numpy()
 
 
     while validador:
-        sample = dataframe.sample(n=1)
+        sample = dataframe.sample(n=1).str.strip()
 
     [sample_return, *extra]  = sample.to_numpy()
 
@@ -176,7 +179,6 @@ def chequeo_valores(dataframe):
     for index,col in enumerate(columnas):
 
         sample = request_not_na_value(dataframe[col],col)
-
         columnas_lista.append(matcher_regexp(regexp_list, sample, col))
     
 

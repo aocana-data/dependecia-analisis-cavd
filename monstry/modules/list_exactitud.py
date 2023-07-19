@@ -6,11 +6,23 @@ from .mixer_exactitud import mixer_exactitud
 
 def list_exactitud(rules:dict , dataframe,chars_omitir_exactitud,data_types)->list:
 
+
+
     total_dicts = []
     inexactos = {}
     exactos ={}
+    
 
-    for rule in rules.values(): 
+    for fn_name,rule in rules.items(): 
+        
+        print(f"""
+        LA SIGUIENTE FUNCION : {fn_name.__name__}
+        
+        ANALIZARA LA(s) SIGUIENTE(s) COLUMNA(s):
+        CANTIDAD DE COLUMNAs = {len(rule[0])}
+        {' , '.join(rule[0])}
+        {'-'*100}
+        """)
         
         returned_data = set_exactitud_cols_func( rule, dataframe, chars_omitir_exactitud, data_types)
         set_df = returned_data['return_data']
@@ -32,6 +44,7 @@ def list_exactitud(rules:dict , dataframe,chars_omitir_exactitud,data_types)->li
 
     return {
         "exactitud":    exactitud,
+        
         "inexactitud":  inexactos,
         "exactos":      exactos
     }

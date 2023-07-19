@@ -75,7 +75,7 @@ def arrow_value(value):
 
     for key,matcher in PARAMS.items():
         buttom,top = matcher
-        if buttom <= value < top :
+        if buttom <= value <= top :
             return key
 
     
@@ -87,7 +87,7 @@ def gauge(**kwargs):
     
     arrow       =   kwargs["arrow"] or 1
     title       =   kwargs["title"] or ''
-    fname       =   kwargs["fname"] or  None
+    fname       =   kwargs.get("fname",False)
 
     
     

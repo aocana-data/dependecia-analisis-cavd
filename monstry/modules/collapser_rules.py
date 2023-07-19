@@ -1,3 +1,5 @@
+from pprint import pprint
+
 def collapser(reglas):
     
     # seteo una lista de valores unicos de funciones
@@ -6,6 +8,7 @@ def collapser(reglas):
         print('No se encuentra cargado correctamente el archivo config')
         return None
 
+
     set_values= set(reglas.values())
 
     dict_values = {}
@@ -13,14 +16,13 @@ def collapser(reglas):
     # registro la estructura
     for func in set_values:
         dict_values[func] = [[],func]
-
-    # 
+        
+    
     for key,func in reglas.items():
 
         columnas , values= dict_values[func]
 
         if func == values:
             dict_values[func][0].append(key)
-
-
-    return dict_values
+    
+    return dict_values 

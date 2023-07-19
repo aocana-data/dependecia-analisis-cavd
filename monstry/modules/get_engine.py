@@ -2,7 +2,10 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
 
-def get_engine_df(cnx,engine_db):
+def get_engine_df(**kwargs):  
+    
+    cnx         =   kwargs["cnx"]
+    engine_db   =   kwargs["engine_db"]
 
     try:
         db_URIConector={
@@ -12,7 +15,8 @@ def get_engine_df(cnx,engine_db):
         }
 
         URI = db_URIConector.get(engine_db,None)
-            
+        
+        
         if URI is None:
             print('No se encuentra ese motor')
             return 

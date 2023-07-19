@@ -1,5 +1,3 @@
-import typing
-
 
 def process_cb(col:str, cb:any , dataset:any , chars_omitir_exactitud , data_types)->dict:
 
@@ -27,11 +25,10 @@ def process_cb(col:str, cb:any , dataset:any , chars_omitir_exactitud , data_typ
     '''
  
     #Limpieza del valor default de filtrado
-    
     bi_columna = limpieza_de_columna(dataset , col , chars_omitir_exactitud, data_types)
+    
 
     #Data que aplica la regla de chequeo
-    
     bi_data = bi_columna[col].apply(cb).value_counts()
     
     inexacto_dataframe_sample = {}
@@ -53,8 +50,15 @@ def process_cb(col:str, cb:any , dataset:any , chars_omitir_exactitud , data_typ
 
     
     if len(bi_columna) == 0 :
-        print(f'⚠️WARNING:\n\tLA COLUMNA "{col}" ES COMPLETAMENTE NULA, POR LO TANTO VALOR DE EXACTITUD ES SETEADO A 0')
+        print(f'''
+              
+        --!-->    WARNING:
+                    LA COLUMNA "{col}" ES COMPLETAMENTE NULA
+                    POR LO TANTO VALOR DE EXACTITUD ES SETEADO A 0
+        ''')
+        
         data_return['PORCENTAJE DE EXACTITUD'] = 0
+        
     else:
         data_return['PORCENTAJE DE EXACTITUD'] = round((bi_data.get(True,0) *100)/len(bi_columna), 2)
 
@@ -81,7 +85,7 @@ def limpieza_de_columna( dataset,col,chars_omitir_exactitud,data_types):
         columna_limpia = columna_limpia[ columna_limpia[col] != char]
 
    
-    columna_limpia = columna_limpia.astype(type_deberia,errors='ignore').astype('str')
+    columna_limpia = columna_limpia.astype(type_deberia,errors='ignore').astype(str)
     
     return columna_limpia
 

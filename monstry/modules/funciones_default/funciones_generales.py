@@ -38,6 +38,7 @@ def comprobando_uuid(variable):
     """    
     regexp = '.{36}'
 
+    variable = variable.strip()
     try:
         return True if re.search(regexp, variable) else False
     except:
@@ -46,6 +47,7 @@ def comprobando_uuid(variable):
 def comprobando_lat_long(variable):
     
     reg_exp = '^-?[0-9]\d*(\.\d+)?$'   
+    variable = str(variable)
     try:
         if re.search(reg_exp,variable): return True
         else: return False
@@ -55,6 +57,7 @@ def comprobando_lat_long(variable):
 
 def comprobando_no_determinado(variable):
     reg_exp = '.+'   
+    variable = str(variable)
     try:
         if re.search(reg_exp,variable): return True
         else: return False
@@ -73,9 +76,14 @@ def comprobando_alfanumerico(variable):
     
 
 def comprobando_numeros_telefonicos(variable):
+    
+    if isinstance(variable,str):
+        variable = str(variable)
+    
     if re.search('\.0+$',variable):
         variable = int(variable)
 
+    
     reg_exp = "(^(?:(?:00)?549?)?0?(?:11|[2368]\d)(?:(?=\d{0,2}15)\d{2})??\d{8}$|\d{8,10})"
     try:
         if re.search(reg_exp,variable): return True
@@ -131,6 +139,7 @@ def comprobando_fechas_date(variable):
     19/10/1987  |   19-10-1987 
     
     """
+    variable = str(variable)
     
     reg_exp = "(^((1[0-2]|0?[1-9]|.{2}))(\/|\-)(3[01]|[12][0-9]|0?[1-9])(\/|\-)(?:[0-9]{2})?[0-9]{2}$|^(?:[0-9]{2})?[0-9]{2}(\/|\-)(3[01]|[12][0-9]|0?[1-9])(\/|\-)((1[0-2]|0?[1-9])|.{2})$)"
     return True if re.search(reg_exp, variable) else False
@@ -213,7 +222,7 @@ def comprobando_digitos_dni(variable):
     try:
         variable = int(variable.strip())
         variable = str(variable)
-
+        variable = variable.strip()
         reg_exp = "^[0-9]{7,8}$"
     
         return True if re.search(reg_exp, variable) else False
@@ -266,10 +275,12 @@ def comprobando_letras_3_o_menos(variable):
     return True if re.search(regexp,variable,re.IGNORECASE) else False
 
 def comprobando_letras_y_numeros(variable):
+    variable = variable.strip()
     regexp = '[A-Z0-9]+'
     return True if re.search(regexp,variable,re.IGNORECASE) else False
 
 def comprobando_tipos_bool_logicos(variable):
+    variable = variable.strip()
     regexp = "^(si|no|s|n|y)$"
     return True if re.search(regexp,variable,re.IGNORECASE) else False
 
@@ -299,7 +310,7 @@ def validador_cuit(cuit_cuil_validador):
     validar que sea un tipo de dato cuit cuil
     para el territorio argentino
     """
-    
+
     reg_exp = "^[2-3][0-9][0-9]{8}[a0-9]{1}$"
     return True if re.search(reg_exp, cuit_cuil_validador) else False
 
@@ -334,6 +345,7 @@ def validador_digito(ponderacion):
 
 def custom_comprobando_cuit_cuil(variable):
     
+    variable = variable.strip()
     
     if len(variable) == 0 or variable is None: return False
     

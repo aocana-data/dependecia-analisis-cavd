@@ -30,14 +30,34 @@ def read_db_csv(csv_path):
 def read_db_xlsx(xlsx_path):
     return pd.read_excel(xlsx_path)
 
-def read_db_engine(cnx, query:str = None , engine:str = None):
+def read_db_engine(**kwargs):
+ 
+    engine      =   kwargs.get("engine",None)
+    builder     =   kwargs.get("builder",None)
+    cnx         =   kwargs.get("cnx",None)
+    query       =   kwargs.get("query",None)
+    
+               
+    if engine == "csv":
+        path_local  =   builder["csv_path"]
+        return read_db_csv(path_local)
+    
+    if engine == "xlsx":    
+        path_local  =   builder["xlsx_path"]
+        return read_db_xlsx(path_local)
+    
     if query is None or engine is None:
         print('No se han cargado el query o el engine')
         return
     
-    engine_sql_alchemy  = get_engine_df()
-
-    return data_frame(query , engine_sql_alchemy() )
+    engine_sql_alchemy  = get_engine_df(
+        cnx         =   cnx,
+        engine_db   =   engine
+    )
+        
+    return  data_frame(
+                query = query ,
+                engine_cnx =  engine_sql_alchemy.connect() 
+            )
     
     
-

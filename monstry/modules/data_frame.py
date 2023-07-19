@@ -3,10 +3,16 @@ import pandas as pd
 from sqlalchemy import text
 
 
-def data_frame(query, engine_cnx):
+def data_frame(**kwargs):
     
+    query       =   kwargs["query"]
+    engine_cnx  =   kwargs["engine_cnx"]
+    
+        
     engine_ = engine_cnx.execution_options(stream_results=True)
     data_frame = pd.DataFrame()
+
+
 
     for index,chunks in enumerate(pd.read_sql(text(query),engine_,chunksize=100_000)):
         """

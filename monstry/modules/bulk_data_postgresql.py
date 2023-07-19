@@ -9,13 +9,12 @@ def postgresql_database(engine):
     schemas = insp.get_schema_names()
     
     if not schemas or len(schemas)==0:
-        return None
+        return False
     
     return {
             schema: insp.get_table_names(schema=schema) \
             for schema in schemas 
     }
-    
     
 def get_query_list(database_schema, tables , limit ):
     ## TODO => mejorar la forma como se piden los datos, permitiendo obtener ciertas cantidades muestrales
@@ -39,16 +38,13 @@ def get_query_list(database_schema, tables , limit ):
         for table in tables 
     ] 
 
-
-
 def get_all_df(query_list:list,engine_cnx):
-    
     return [
-        data_frame(query,engine_cnx) for query in query_list
+        data_frame(query=query,engine_cnx=engine_cnx) for query in query_list
     ]
 
 
-
+# FUNCION PRINCIPAL DE ANALISIS EN POSTGRESQL PARA CONOCER TODAS LAS TABLAS DE UN SCHEMA EN PARTICULAR
 
 def bulk_dataframes(**kwargs):
     """
@@ -66,18 +62,25 @@ def bulk_dataframes(**kwargs):
     
     schema  =   cnx.get("schema", cnx["database"])
     
-    engine_sql_alchemy  =   get_engine_df(cnx , engine)
-    
+    # OBTENCION DE LAS TABLAS QUE COMPONEN AL SCHEMA
+    engine_sql_alchemy  =   get_engine_df(cnx = cnx , engine_db = engine)
     tables_  =   postgresql_database(engine_sql_alchemy)
     
     if not tables_:
         print("No se pudieron leer las tablas de la base de datos")
         return None
-    
+    # SCHEMA ESPECIFICADO
     tables  =   tables_[schema]
     query_list = get_query_list(schema , tables , limit)
     engine_sql_alchemy_connection   =   engine_sql_alchemy.connect()
     
-    return{ table:df for df,table in zip(get_all_df(query_list,engine_sql_alchemy_connection) , tables) }
-    
+    return  { 
+        
+        table:df 
+        for df,table 
+        in zip( get_all_df(query_list,engine_sql_alchemy_connection) , tables) 
+    }
+
+def bulk_local_dataframes(**kwargs):
+    ...
     

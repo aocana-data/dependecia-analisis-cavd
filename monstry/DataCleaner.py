@@ -13,35 +13,37 @@ from typing     import  Optional
 from itertools  import  zip_longest
 
 
-
+from monstry.BuilderManager                 import BuilderManager
 
 
 # IMPORT OF INTERNAL MODULES
-from .modules.export_modules.export_matriz import insercion_data
+from .modules.export_modules.export_matriz  import  insercion_data
+from .modules.set_validadores_exactitud     import  set_validadores_exactitud
 
-from .modules.completitud_rules     import  completitud
-from .modules.list_exactitud        import  list_exactitud
-from .modules.variable_categorica   import  variable_categorica
-from .modules.estado_columna        import  estado_columnas
-from .modules.merger_dataframes     import  merger_dataframes
-from .modules.agregado_chars        import  agregado_chars
-from .modules.dataframe_cleaner     import  get_reglas_casteo
-from .modules.collapser_rules       import  collapser
-from .modules.data_types_matcher    import  chequeo_valores
-from .modules.hidden_prints         import  HiddenPrints
+from .modules.completitud_rules             import  completitud
+from .modules.list_exactitud                import  list_exactitud
+from .modules.variable_categorica           import  variable_categorica
+from .modules.estado_columna                import  estado_columnas
+from .modules.merger_dataframes             import  merger_dataframes
+from .modules.agregado_chars                import  agregado_chars
+from .modules.dataframe_cleaner             import  get_reglas_casteo
+from .modules.collapser_rules               import  collapser
+from .modules.data_types_matcher            import  chequeo_valores
+from .modules.hidden_prints                 import  HiddenPrints
 
-
-from .modules.output_process_csv    import  to_csv_func  , \
-                                            validate_output_file
+from .modules.output_process_csv            import  to_csv_func  , \
+                                                    validate_output_file
                                             
-from .modules.output_gauge_total    import  gauge   , \
-                                            arrow_value , \
-                                            score      
+from .modules.output_gauge_total            import  gauge   , \
+                                                    arrow_value , \
+                                                    score      
                                             
-from .modules.criterios_minimos     import  criterios_minimos_info
-
-
-from .Builder                       import Builder
+from .modules.criterios_minimos             import  criterios_minimos_info
+from .modules.get_json_config               import  get_config_files
+from .modules.save_new_config_file          import  save_new_config_file
+from .modules.check_new_config_file         import  check_new_config_file
+from .modules.save_criterios_barh           import  save_criterios_generales
+from .BuilderManager                        import  Builder
 
 load_dotenv()
 
@@ -75,7 +77,8 @@ class DataCleaner:
 
     #VALORES POR DEFAULT
 
-    path_default    = './monstry/modules/funciones_default/funciones_generales.py'
+    PATH_DEFAULT    = './monstry/modules/funciones_default/funciones_generales.py'
+    
     chars_null      = [",", ".", "'", "-", "_", ""]
 
     config          =   {
@@ -85,120 +88,116 @@ class DataCleaner:
                         "dtypes":{}
                     }
 
-    exactitud       = None
-    completitud     = None
-    resumen         = None
-    rules           = None
-    criterio_minimo = None
-    chars_omitir_exactitud:dict = None
-    score_completitud   =   None
-    score_exactitud     =   None
 
-    def __init__(self, builder:Builder, nombre_tabla:str = 'DESCONOCIDA')->None:
-        # inicia la base de datos para poder ser usada en el constructor
+    chars_omitir_exactitud:dict     =   None
+    DATA_DEFAULT_COLUMNAS:dict      =   None
+    segregacion_criterios_minimos   =   None
+    score_completitud               =   None
+    criterio_minimo                 =   None
+    min_criterio_minimo             =   None
+    score_exactitud                 =   None
+    completitud                     =   None
+    exactitud                       =   None
+    resumen                         =   None
+    rules                           =   None
+    vectorizacion_cb                =   lambda self, completitud , exactitud : round((completitud * exactitud)/100,2)
+    
+    
+    def __init__(self, **kwargs)->None:
+        
+        
+        builder:Builder     =   kwargs.get("builder",None)
+        
+        if isinstance(builder, BuilderManager):
+            builder             =   builder.build()
+        
+        builder.get_database()
+        
+        # CONFIGURACIONES DESDE EL BUILDER
+        self.config             =   builder.get_config()
+        
+        # LOS DATOS DE CONEXION DIRECTAMENTE DESDE EL BUILDER
+        self.builder_config     =   builder.get_cnx()
+        
+        # EL DATAFRAME GENERADO POR EL BUILDER DIRECTAMENTE
+        self.dataframe          =   builder.builder_get_database()
+        self.BASE_DIR           =   builder.get_base_dir()
+        self.get_config_file    =   builder.get_config_path()
+        
+        # AGREGADO DE NOMBRE DE TABLA Y COLUMNAS DERIVADAS DEL BUILDER
+        if not builder.get_table():
+            self.nombre_tabla   =   kwargs.get("nombre_tabla","DESCONOCIDA")
+        else:
+            self.nombre_tabla       =   builder.get_table()
+            
+        self.columnas           =   self.dataframe.columns
+        self.cantidad_registros =   len(self.dataframe)
+        
+        
+        # SETEADO DE UN ARCHIVO DE CONFIGURACION QUE SE OBTENDRÁ UNICAMENTE 
+        # CUANDO EL CLEANER EJECUTE EL METODO DE GUARDADO DE CSV Y GAUGES
+        # DE ANALISIS DE:
+        #     COMPLETITUD
+        #     EXACTITUD
+        #     CRITERIOS MINIMOS
+            
+        self.CONFIG_FILE_PATH   =   self.__set_CONFIG_FILE_PATH__()
+        self.NEW_CONFIG_FILE    =   self.__set_CONFIG_FILE_PATH__()
+        
+                
+        path    =   check_new_config_file(  
+            config_file_name    =   self.CONFIG_FILE_PATH   ,
+            default_config_file =   self.get_config_file
+        )
+        
+        self.CONFIG_FILE_PATH   =   path
+        
+        self.set_config(self.CONFIG_FILE_PATH)
+        
 
-        builder.get_database() 
-        
-        self.config         =   builder.data_config
-        self.builder_config =   builder.cnx
-        self.dataframe      =   builder.database
-        
-        self.nombre_tabla   =   nombre_tabla
-        self.columnas       =   self.dataframe.columns
-        self.cantidad_registros = len(self.dataframe)
-      
-        self.set_config()
         
         texto =f'''
+        TABLA   :   {self.nombre_tabla.upper()}
+        
         CANTIDAD DE REGISTROS A  ANALIZAR: {self.cantidad_registros}
         
+        {"-"*100}
         Informacion de uso básico:
             _ get_completitud():    
                 Se obtienen la completutid de la tabla
             - get_exactitud():      
-                Se obtiene la exactitud de la tabla siempre y cuando los valores por default sean completados
-                en el archivo de configuraciones o tengan un valor por defecto
-            {"-"*100}
+                Se obtiene la exactitud de la tabla siempre y cuando 
+                los valores por default sean completados en el archivo
+                de configuraciones o tengan un valor por defecto
+            
+        {"-"*100}
+            
             - get_resumen():
-                Se obtiene un dataframe con el análisis de completitud y exactitud del dataset seleccionado
+                Se obtiene un dataframe con el análisis de completitud 
+                y exactitud del dataset seleccionado
         '''
+    
         print(texto)
+    
 
-    def set_validadores_exactitud(self , path_funciones:Optional[str] = None):
-        """
-        @params
-            path_funciones : 
-            path del archivo con las funciones a utilizar para el analisis de exactitud
-        """
-
-        try:
-                
-
-            if path_funciones is None:
-                # le indico que puede tomar los datos desde el archivo config
-
-                BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-
-                path_default = self.config.get('exactitud_validadores',None)
-                
-                if path_default is None or path_default == '':
-                    '''
-                        EL PATH DEFAULT DE LAS FUNCIONES
-                    '''    
-                    PATH_DEFAULT = self.path_default
-
-                
-                path_funciones = os.path.join(BASE_DIR,PATH_DEFAULT)
-
-
-                
-            with open(path_funciones,encoding='utf8') as  f:
-                data = f.read()
-
-            # exec(compile(data,'funciones','exec'))
-            exec(data)
-
-            rules = self.config.get('exactitud_reglas', None)
-            rules_set = collapser(rules) 
-
-            if rules_set is None:
-                self.raw_rules = rules_set                
-                return True
-
-            for col , fn in rules.items():
-                rules[col] = eval(fn)
-
-
-            for key,value in rules_set.items():
-                function = value.pop()
-                value.append(eval(function))            
-
-
-            self.rules = rules_set
-            self.raw_rules = rules
-
-            if self.rules is  None:
-                return None
-            
-            return True
-
-        except Exception as e:
-            
-            print(e)
-            print(f'{type(e)} :  {type(e).__doc__}')
-
-            return None
-
-
-    def set_config(self,json_config_path_file:Optional[str]=None):
+    def set_config(self,json_config_path_file):
         '''
         _summary_
         genera las reglas generadas por un archivo json
         '''
 
-        if json_config_path_file is not None:              
-            self.config = get_reglas_casteo(json_config_path_file)
+        if not json_config_path_file:
+            print(f"""
+                  
+            --!-->  No existe archivo de configuración
+                    Se toman los siguientes caracteres como incompletos/nulos
+                    {'-'*50}
+                    {' | '.join(self.chars_null)}
+                  """)    
+            return    None
 
+        self.config = get_reglas_casteo(json_config_path_file)
+        
         chars_nulabilidad= self.config.get('chars_null',None)
 
         if chars_nulabilidad is None:
@@ -210,15 +209,20 @@ class DataCleaner:
 
 
     def get_completitud(self):
-
+        print("ANALISIS DE COMPLETITUD")
+        print('-'*60)
+        
+        
+        print("\nCONFIGURACION DE VALORES dtypes PARA LAS COLUMNAS")
+        
         if self.config.get('dtypes',None) is None:
-            print('La configuracion de los tipos de datos no están cargados')
+            print('--!-->   La configuracion de los tipos de datos no están cargados')
             return None
 
         if len(self.config.get('dtypes')) == 0:
-            print('Se toman los valores por defecto')
+            print('--!-->   Se toman los valores por defecto')
 
-        data_types= self.config.get('dtypes')
+        data_types  =   self.config.get('dtypes')
 
         if self.config['completitud_reglas'].get('rules',None) is None:
             opcion = 'solo_nan'
@@ -233,19 +237,18 @@ class DataCleaner:
         params = {  
                     'dataframe'     :   self.dataframe,
                     'nombre_tabla'  :   self.nombre_tabla,
-                    'data_types'    :   data_types,
                     'chars_null'    :   self.chars_null,
                     'opcion'        :   opcion,
+                    'data_types'    :   data_types,
                     'reglas_completitud_config':self.config.get('completitud_reglas',{}).get('rules',{})
         }
-
 
 
         res_completitud = completitud(**params)
         
         self.completitud = res_completitud['tabla_resumen']
         self.chars_omitir_exactitud = res_completitud['chars_omitir_exactitud']
-
+        
         print('Analisis de completitud finalizado\n * Para observar los resultados solo de "Completitud" visualizar con .completitud')
 
         return None
@@ -259,65 +262,108 @@ class DataCleaner:
         las funciones declaradas en ./modules/funciones_default/funciones_generales.py
         
         """
-        self.get_completitud()
+        if self.completitud is None:
+            self.get_completitud()
         
-        print("SETEADO DE FUNCIONES DE EXACTITUD".center(20))     
-        self.set_validadores_exactitud()
+        print("\nSETEADO DE FUNCIONES DE EXACTITUD")
         
-        # if self.rules is None:
-        #     print('La carga de estas reglas se deben realizar, indicandole el archivo de configuración o de manera manual.')
-        #     return None
-
-        data_types_default = dict(list(zip_longest(self.dataframe.columns,['object'],fillvalue='object')))
-
-        if self.rules is None or len(self.rules) == 0:
-            """
-            Se setean los valores por default de reglas para el analisis de exactitud
-            """
-
-            print("""
-            VALIDACION DE DATOS POR DEFAULT
-            ---
+        # LAS REGLAS DE CASTEO SE PUEDEN TOMAR DESDE:
+        #     DEFAULT
+        #     JSON CONFIG PATH
+        #     UN AGREGADO DE MEZCLA DE FUNCIONES
             
-            Si se desean funciones customizadas, deberán ser cargadas en
-            en el archivo de configuración JSON
-                
-                  """)
+        
+        ## CENTRALIZADO DE VALORES POR DEFECTO
+        
+        # BUSCO LOS PATHS DONDE SE ENCUENTRE LAS FUNCIONES
+        #     - SI NO HAY FUNCIONES CUSTOM TOMARA LAS DE DEFECTO
+        #     - SI HAY TOMARA LA RUTA Y CONVERTIRÁ USANDO ESAS FUNCIONES
+        
+        
+        config_path_getter      =   get_reglas_casteo(self.CONFIG_FILE_PATH)
+        
+        path_custom_functions   =   {}
+        
+    
+        if config_path_getter is not None:
+            path_custom_functions   =   config_path_getter.get('exactitud_validadores',None)
+        
+        # VERIFICAMOS SI TENEMOS FUNCIONES AGREGADAS
+        
+        
+        
+    
+        # VERIFICACION SOBRE LAS FUNCIONES CUSTOMIZADAS    
+        if path_custom_functions is None or path_custom_functions == '':
+            print(f" --!--> No existe path de funciones customizadas, se usan las funciones de defecto")
+        
+        elif len(path_custom_functions) == 0:
+            print(f" --!--> No existe path de funciones customizadas")
+        
+        else:
+            print(f" --!--> Existe path de funciones customizadas, se usa el siguiente path:\n\t{path_custom_functions}")
+        
+        # SET VALORES DE ANALISIS POR DEFAULT
+        
+        
+        if self.DATA_DEFAULT_COLUMNAS is None:
+            self.DATA_DEFAULT_COLUMNAS  =   self.data_columnas()
+        
+        
+        RULES   =   {x["columna"]:x.get('default') for x  in self.DATA_DEFAULT_COLUMNAS}
+        
+        
+        collapsed_rules     =   set_validadores_exactitud(
             
-            reglas = {x["columna"]:x.get('default') for x  in self.data_columnas()}
-
+            path_funciones  =   path_custom_functions   ,
+            base_dir        =   self.BASE_DIR           ,
+            path_default    =   self.PATH_DEFAULT       ,
+            config          =   self.config             ,
+            rules_defecto   =   RULES           
             
-            self.raw_rules = reglas
-            self.rules = collapser(reglas)
+        )
+        
 
         
-        print("""
-            SETEANDO LA CONFIGURACIONES:
-
-            PARAMETROS DE EXACTITUD
-              """)
+        # SET DE DTYPES
         
-        
+        data_types_default = dict(
+                                    list(
+                                            zip_longest(self.dataframe.columns,
+                                            ['object'],
+                                            fillvalue='object')
+                                            )
+                            )
+       
+       
         exactitud_paramas = {
-            'rules' : self.rules,
-            'dataframe':    self.dataframe,
-            'chars_omitir_exactitud' : self.chars_omitir_exactitud,
-            'data_types':   self.config['dtypes'] or {x["columna"]:x.get('dtype') for x  in self.data_columnas()}
+            'data_types'                :   self.config['dtypes'] or {
+                x["columna"]:x.get('dtype') 
+                for x  
+                in  self.DATA_DEFAULT_COLUMNAS},
+            
+            'chars_omitir_exactitud'    :   self.chars_omitir_exactitud,
+            'rules'                     :   collapsed_rules,
+            'dataframe'                 :   self.dataframe
         }
         
         
         exactitud_return = list_exactitud(**exactitud_paramas)
+        
+        
+        
         try:    
             self.exactitud = exactitud_return['exactitud']
             self.inexactos = exactitud_return['inexactitud']
             self.exactos = exactitud_return['exactos']
 
-            print('Analisis de exactitud finalizado\n* Para observar los resultados solo de "Exactitud" visualizar con .exactitud')
+            print('''
+        Analisis de exactitud finalizado
+            - Para observar los resultados solo de "Exactitud" visualizar con .exactitud''')
 
             return None
         
         except Exception as e:
-            print("Excepcion producida en seteo de las listas de exactitud".center(20))
             print(f"==>{e}")
 
     def get_resumen(self)->any:
@@ -328,6 +374,7 @@ class DataCleaner:
         @return
             dataframe(pandasDF) : los valores unificados
         '''
+        print(f"{'-'*100}\n\nTABLA : {self.nombre_tabla}\n\n")
 
         self.get_exactitud()
         
@@ -347,10 +394,11 @@ class DataCleaner:
                 ]
             ]
             
+            self.get_criterios_minimos_resumen()
+            
             return self.resumen
 
 
-            self.get_criterios_minimos_resumen()
 
         except Exception as e:
             print(e)
@@ -372,11 +420,9 @@ class DataCleaner:
     # #
 
     def data_columnas(self):
-                
         return chequeo_valores(self.dataframe)
 
     def get_registros(self, columna:Optional[str] = None , char:Optional[str]=None):
-
         if columna is None or char is None:
             print('No se ingresaron datos en alguno de los campos')
             return None
@@ -448,25 +494,84 @@ class DataCleaner:
             variable_categorica(self.dataframe, cantidad_registros , col)
 
     
-    def get_criterios_minimos_resumen(self):
-        if self.resumen is None or len(self.resumen) == 0:
-            print(f"Resumen no ha sido creado.")
+    def get_criterios_minimos_resumen(self,**kwargs):
+        """
+        :params
+            metodo_criterio_minimo ==> es una funcion (recomendado una lambda function)
+            por defecto 
+            -   lambda completitud, exactitud : round((completitud* exactitud)/100,2)
+        """
+        
+        
+        self.vectorizacion_cb   =   kwargs.get("metodo_criterio_minimo", self.vectorizacion_cb)
+        
+        try:
+            if self.resumen is None or len(self.resumen) == 0:
+                print(f"Debe correr el metodo de get_resumen() previamente")
+                return 
+        
+            self.criterio_minimo                    =   self.resumen.copy(deep=True)  
+            
+            self.criterio_minimo["CRITERIO MINIMO"] =  np.vectorize( self.vectorizacion_cb )(self.criterio_minimo["PORCENTAJE DE COMPLETITUD"],self.criterio_minimo["PORCENTAJE DE EXACTITUD"])
+            
+            self.segregacion_criterios_minimos      =   pd.DataFrame(criterios_minimos_info(self.criterio_minimo))
+
+            self.min_criterio_minimo                =   self.criterio_minimo[["COLUMNA","PORCENTAJE DE COMPLETITUD","PORCENTAJE DE EXACTITUD","CRITERIO MINIMO"]].set_index("COLUMNA").iloc[::-1]
+            
+    
+
+        
+        except Exception as e:
+            print(f"ERROR al generar los criterios mínimos\n{e}")
+
+    def __set_CONFIG_FILE_PATH__(self):
+        
+        return  os.path.join(       
+                self.BASE_DIR   ,
+                os.getenv("CONFIG_DIR","config_files")  ,
+                f"{self.nombre_tabla}"  ,
+                f"{self.nombre_tabla}_config.json"
+        )
+        
+
+    def __save_last_config_file(self,**kwargs):
+        
+        if  Path(self.NEW_CONFIG_FILE).is_file():
+            print("Archivo de configuracion existe, no se procederá a guardar ninguna nueva")
             return 
         
-        self.criterio_minimo                    =   self.resumen.copy(deep=True)  
-        self.criterio_minimo["CRITERIO MINIMO"] =   np.vectorize(lambda completitud, exactitud : round((completitud* exactitud)/100,2) )(self.criterio_minimo["PORCENTAJE DE COMPLETITUD"],self.criterio_minimo["PORCENTAJE DE EXACTITUD"])
+        if not self.get_config_file:
+            config_json_file    =   self.config
+            
+        else:
+            config_base_file    =   Path(self.BASE_DIR) / self.get_config_file
+            config_json_file    =   get_config_files(config_base_file)
         
-        self.segregacion_criterios_minimos      =   pd.DataFrame(criterios_minimos_info(self.criterio_minimo))
-
+        config_json_file["exactitud_reglas"]    =   self.__values_aprox_function__()
+        
+        
+        if isinstance(self.chars_omitir_exactitud,dict):
+            config_json_file["completitud_reglas"]["rules"] = self.chars_omitir_exactitud
+            
+        validate_output_file(output_dir = Path(self.NEW_CONFIG_FILE).resolve().parent)
+                
+        save_new_config_file( 
+                                path            =   self.NEW_CONFIG_FILE,
+                                json_to_save    =   config_json_file
+                            )
+        
+        
 
     def to_csv_resumen_table(self,**kwargs):
         """
         CSV de Resumen
         """
-        TODAY       =   date.today().strftime("%b-%d-%Y")
         
-        BASE_DIR    =   kwargs["base_dir"]
-        OUTPUT_DIR  =   BASE_DIR / kwargs.get("output_dir", f"{self.nombre_tabla}_analisis") / f"csv"
+        print(f"{'-'*70}\nTABLA ANALIZADA : {self.nombre_tabla.upper()}\n")
+        
+        TODAY       =   date.today().strftime("%b-%d-%Y")
+        OUTPUT_DIR  =   Path(self.BASE_DIR) / kwargs.get("output_dir", f"{self.nombre_tabla}_analisis") /f"{self.nombre_tabla}" /f"csv"        
+        
         
         path        =   Path(OUTPUT_DIR)
         
@@ -512,8 +617,10 @@ class DataCleaner:
         for params in csv_paramas:
             to_csv_func(**params)
         
-
+        # GUARDA LA CONFIGURACION USADA PARA EL ANALISIS
+        self.__save_last_config_file()
         
+        print("-"*100,'\n')
         
         
     def total_score_gauge_save(self , **kwargs):
@@ -522,11 +629,11 @@ class DataCleaner:
             columns:list -> lista de columnas para hacer una media de la columna indicada
         
         """
-        
-        BASE_DIR    =   kwargs["base_dir"]
+        print(f"{'-'*70}\nTABLA ANALIZADA : {self.nombre_tabla.upper()}\n")
+                
         name        =   self.nombre_tabla
         
-        OUTPUT_DIR  =   BASE_DIR / kwargs.get("output_dir",f"{name}_analisis") / f"gauge_images"
+        OUTPUT_DIR  =   Path(self.BASE_DIR) / kwargs.get("output_dir",f"{name}_analisis") / f"{name}"/f"gauge_images"
         columnas    =   kwargs.get("columns", ["PORCENTAJE DE COMPLETITUD","PORCENTAJE DE EXACTITUD"])
                     
         TODAY       =   date.today().strftime("%Y-%m-%d")
@@ -535,7 +642,7 @@ class DataCleaner:
         colors      =   os.getenv("COLORS",'#E74C3C,#F5CBA7,#58D68D').split(",")
         
 
-        path = OUTPUT_DIR 
+        path = Path(OUTPUT_DIR)
         
         validate_output_file(output_dir = path)
                 
@@ -548,7 +655,7 @@ class DataCleaner:
         ]
                 
 
-        total_criterio_minimo = round((self.score_completitud * self.score_exactitud)/100,2)
+        total_criterio_minimo = self.vectorizacion_cb(self.score_completitud, self.score_exactitud)
         
         
         DATA_SCORING = {
@@ -574,10 +681,18 @@ class DataCleaner:
         ]  
         
             
-        try:                        
+        try:   
+
             for gauge_img in scoring_to_gauge_params:
                 gauge(**gauge_img)
- 
+            
+            save_criterios_generales(
+                criterio_min    =   self.min_criterio_minimo,
+                title           =   f"{self.nombre_tabla.upper()}",
+                path            =   path / f"{name}_barh_{TODAY}.png"
+                )
+            
+            print("-"*100,'\n') 
         except Exception as e:
             print("Error en la creacion de los gauges")
             print(f"{e}")
@@ -618,7 +733,7 @@ class DataCleaner:
             'output': output_data,
             'completitud':self.completitud,
             'exactitud':self.exactitud,
-            'data_columnas':self.data_columnas(),
+            'data_columnas':self.DATA_DEFAULT_COLUMNAS,
             'data_builder': self.builder_config
         }
             
@@ -649,13 +764,13 @@ class DataCleaner:
 
 
     def __values_aprox_types__(self):
-        return {x["columna"]:x.get('dtype') for x  in self.data_columnas()}
+        return {x["columna"]:x.get('dtype') for x  in self.DATA_DEFAULT_COLUMNAS}
     
     def __values_aprox_function__(self):
-        return {x["columna"]:x.get('default').__name__ for x  in self.data_columnas()}
+        return {x["columna"]:x.get('default').__name__ for x  in self.DATA_DEFAULT_COLUMNAS}
     
     def __values_sample__(self):
-        return {x["columna"]:x.get('sample') for x  in self.data_columnas()}
+        return {x["columna"]:x.get('sample') for x  in self.DATA_DEFAULT_COLUMNAS}
     
     def __exactitud_config__(self):
 
@@ -663,7 +778,7 @@ class DataCleaner:
         
         
         with HiddenPrints():
-            config =  {settings["columna"] : settings["default"].__name__  for settings in self.data_columnas()}
+            config =  {settings["columna"] : settings["default"].__name__  for settings in self.DATA_DEFAULT_COLUMNAS}
         
         if not opcion:    
             return config
@@ -683,11 +798,8 @@ class DataCleaner:
         
     def __exactitud_funciones_config__(self,path_in,path_out):
         
-        
         BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-        
-        path_funciones_default = os.path.join(BASE_DIR,self.path_default)
-
+        path_funciones_default = os.path.join(BASE_DIR,self.PATH_DEFAULT)
 
         print(path_funciones_default)
         
@@ -697,11 +809,8 @@ class DataCleaner:
         with open(path_in, 'r') as file:
             new_data = file.read().rstrip()
         
-        
         joiner_text_functions = f"{data}\n\n\n{new_data}"
         
         with open(path_out,'w') as output:
             output.write(joiner_text_functions)
-        
-        
         
