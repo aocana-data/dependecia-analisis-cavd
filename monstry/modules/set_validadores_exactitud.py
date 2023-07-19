@@ -28,11 +28,11 @@ def set_validadores_exactitud(**kwargs):
 
     custom_functions    =   config.get("extra_custom_functions",None)
 
-    with open(path_funciones,"r",encoding='utf8') as  f:
+    with open(path_funciones,"r",encoding='latin-1') as  f:
         data = f.read()
 
     if custom_functions is not None or custom_functions != "":
-        with open(custom_functions,"r",encoding='utf8') as  f:
+        with open(custom_functions,"r",encoding='latin-1') as  f:
             custom_functions_data = f.read()
 
         data += f"\n\n{custom_functions_data}"
