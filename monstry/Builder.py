@@ -17,8 +17,7 @@ class Builder:
         @params:
             query_path = ruta al archivo query
             config_path = ruta al archivo de configuracion
-            cnx = diccionario de conexion
-            ie: {   'host': 'localhost',
+            cnx = { 'host': 'localhost',
                     'port': 3306,
                     'database':'typ_sys',
                     'schema': 'typ_sys',
@@ -31,16 +30,16 @@ class Builder:
         self.query_path = kwargs.get('query_path',None)
         self.cnx = kwargs.get('cnx',None)
 
-        config_path_exits = kwargs.get('config_path',None)
-        config_path_exits = os.path.join(os.getcwd(),config_path_exits)
+        config_path_exists = kwargs.get('config_path',None)
+        config_path_exists = os.path.join(os.getcwd(),config_path_exists)
 
 
-        if config_path_exits is None:
+        if config_path_exists is None:
             self.config = kwargs.get('config_path',None)
             print('Se deberán setear el path y la conexion a la fuente de datos')
             return 
 
-        config = get_reglas_casteo(config_path_exits)
+        config = get_reglas_casteo(config_path_exists)
 
         self.config = config['builder']
 
@@ -91,7 +90,6 @@ class Builder:
         db = self.cnx.get('database', None) or self.config['cnx']['database']
 
         try:
-   
             with open(self.query_path, 'r') as file:
                 data = file.read()
                 self.query = eval(data)
@@ -106,7 +104,7 @@ class Builder:
     
     def use_env_files(self,cnx_json):
         
-        if cnx_json is None: return None
+        if cnx_json is None: return None 
         
         return { k:os.getenv(v) if v!='' else ''  for  k,v in cnx_json.items()}
         

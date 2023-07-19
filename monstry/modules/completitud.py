@@ -27,7 +27,7 @@ def completitud(dataframe:any,nombre_tabla:str , chars_null,filter_nan)->any:
         'REGISTROS TOTALES' : [],
         'CANTIDAD DE INCOMPLETOS' : [],
         'CANTIDAD DE COMPLETOS' : [],
-        'PORCENTAJE COMPLETITUD' : []
+        'PORCENTAJE DE COMPLETITUD' : []
     }
 
     tabla_resumen = pd.DataFrame(headers)
@@ -44,7 +44,7 @@ def completitud(dataframe:any,nombre_tabla:str , chars_null,filter_nan)->any:
                     'REGISTROS TOTALES' : [len(dataframe)],
                     'CANTIDAD DE INCOMPLETOS' : [incompletitud_cantidad_col],
                     'CANTIDAD DE COMPLETOS' : [completitud_cantidad_col],
-                    'PORCENTAJE COMPLETITUD' : [perc(completitud_cantidad_col,dataframe)]
+                    'PORCENTAJE DE COMPLETITUD' : [perc(completitud_cantidad_col,dataframe)]
             }
 
         row = pd.DataFrame(row_body)
@@ -55,7 +55,7 @@ def completitud(dataframe:any,nombre_tabla:str , chars_null,filter_nan)->any:
                     'REGISTROS TOTALES' : 'int64',
                     'CANTIDAD DE INCOMPLETOS' : 'int64',
                     'CANTIDAD DE COMPLETOS' : 'int64',
-                    'PORCENTAJE COMPLETITUD' : 'float64'
+                    'PORCENTAJE DE COMPLETITUD' : 'float64'
                     }
 
         tabla_resumen=pd.concat([row, tabla_resumen], ignore_index= True).astype(data_types)

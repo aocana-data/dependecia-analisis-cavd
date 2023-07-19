@@ -1,26 +1,49 @@
 import os
 import re
-import pandas as pd
-from datetime import datetime
-from typing import Optional
-from itertools import zip_longest
+
+import pandas   as      pd
+import numpy    as      np
+
+from pathlib    import  Path
+from datetime   import  date
+from dotenv     import  load_dotenv
+
+from datetime   import  datetime
+from typing     import  Optional
+from itertools  import  zip_longest
+
+
+
 
 
 # IMPORT OF INTERNAL MODULES
-
-from .modules.completitud_rules import completitud
-from .modules.list_exactitud import list_exactitud
-from .modules.variable_categorica import variable_categorica
-from .modules.estado_columna import estado_columnas
-from .modules.merger_dataframes import merger_dataframes
-from .modules.agregado_chars import agregado_chars
-from .modules.dataframe_cleaner import get_reglas_casteo
-from .modules.collapser_rules import collapser
-from .modules.data_types_matcher import chequeo_valores
 from .modules.export_modules.export_matriz import insercion_data
-from .modules.hidden_prints import HiddenPrints
 
-from .Builder import Builder
+from .modules.completitud_rules     import  completitud
+from .modules.list_exactitud        import  list_exactitud
+from .modules.variable_categorica   import  variable_categorica
+from .modules.estado_columna        import  estado_columnas
+from .modules.merger_dataframes     import  merger_dataframes
+from .modules.agregado_chars        import  agregado_chars
+from .modules.dataframe_cleaner     import  get_reglas_casteo
+from .modules.collapser_rules       import  collapser
+from .modules.data_types_matcher    import  chequeo_valores
+from .modules.hidden_prints         import  HiddenPrints
+
+
+from .modules.output_process_csv    import  to_csv_func  , \
+                                            validate_output_file
+                                            
+from .modules.output_gauge_total    import  gauge   , \
+                                            arrow_value , \
+                                            score      
+                                            
+from .modules.criterios_minimos     import  criterios_minimos_info
+
+
+from .Builder                       import Builder
+
+load_dotenv()
 
 
 class DataCleaner:
@@ -52,36 +75,44 @@ class DataCleaner:
 
     #VALORES POR DEFAULT
 
-    path_default = './monstry/modules/funciones_default/funciones_generales.py'
-    chars_null = [",", ".", "'", "-", "_", ""]
+    path_default    = './monstry/modules/funciones_default/funciones_generales.py'
+    chars_null      = [",", ".", "'", "-", "_", ""]
 
-    config={
-        "chars_null": [",", ".", "'", "-", "_", ""],
-        "exactitud_reglas" :{},
-        "completitud_reglas":{},
-        "dtypes":{}
-    }
+    config          =   {
+                        "chars_null": [",", ".", "'", "-", "_", ""],
+                        "exactitud_reglas" :{},
+                        "completitud_reglas":{},
+                        "dtypes":{}
+                    }
 
-    exactitud = None
-    completitud = None
-    resumen = None
-    rules = None
+    exactitud       = None
+    completitud     = None
+    resumen         = None
+    rules           = None
+    criterio_minimo = None
     chars_omitir_exactitud:dict = None
+    score_completitud   =   None
+    score_exactitud     =   None
 
     def __init__(self, builder:Builder, nombre_tabla:str = 'DESCONOCIDA')->None:
         # inicia la base de datos para poder ser usada en el constructor
 
         builder.get_database() 
         
-        self.config = builder.data_config
-        self.builder_config = builder.cnx
-        self.dataframe = builder.database
-        self.nombre_tabla = nombre_tabla
-        self.columnas = self.dataframe.columns
+        self.config         =   builder.data_config
+        self.builder_config =   builder.cnx
+        self.dataframe      =   builder.database
+        
+        self.nombre_tabla   =   nombre_tabla
+        self.columnas       =   self.dataframe.columns
+        self.cantidad_registros = len(self.dataframe)
+      
         self.set_config()
         
         texto =f'''
-        Informacion:
+        CANTIDAD DE REGISTROS A  ANALIZAR: {self.cantidad_registros}
+        
+        Informacion de uso básico:
             _ get_completitud():    
                 Se obtienen la completutid de la tabla
             - get_exactitud():      
@@ -199,12 +230,13 @@ class DataCleaner:
             opcion = 'con_reglas'
 
 
-        params = {  'dataframe':self.dataframe,
-                    'nombre_tabla':self.nombre_tabla,
-                    'data_types':data_types,
-                    'reglas_completitud_config':self.config.get('completitud_reglas',{}).get('rules',{}),
-                    'chars_null':self.chars_null,
-                    'opcion':opcion
+        params = {  
+                    'dataframe'     :   self.dataframe,
+                    'nombre_tabla'  :   self.nombre_tabla,
+                    'data_types'    :   data_types,
+                    'chars_null'    :   self.chars_null,
+                    'opcion'        :   opcion,
+                    'reglas_completitud_config':self.config.get('completitud_reglas',{}).get('rules',{})
         }
 
 
@@ -305,7 +337,20 @@ class DataCleaner:
                 return None
 
             self.resumen = merger_dataframes(self.completitud, self.exactitud)
+
+            self.score_completitud, self.score_exactitud = [
+                score(self.resumen, col)
+                for col
+                in  [
+                    "PORCENTAJE DE COMPLETITUD" ,
+                    "PORCENTAJE DE EXACTITUD"
+                ]
+            ]
+            
             return self.resumen
+
+
+            self.get_criterios_minimos_resumen()
 
         except Exception as e:
             print(e)
@@ -402,6 +447,143 @@ class DataCleaner:
         for col in cols:
             variable_categorica(self.dataframe, cantidad_registros , col)
 
+    
+    def get_criterios_minimos_resumen(self):
+        if self.resumen is None or len(self.resumen) == 0:
+            print(f"Resumen no ha sido creado.")
+            return 
+        
+        self.criterio_minimo                    =   self.resumen.copy(deep=True)  
+        self.criterio_minimo["CRITERIO MINIMO"] =   np.vectorize(lambda completitud, exactitud : round((completitud* exactitud)/100,2) )(self.criterio_minimo["PORCENTAJE DE COMPLETITUD"],self.criterio_minimo["PORCENTAJE DE EXACTITUD"])
+        
+        self.segregacion_criterios_minimos      =   pd.DataFrame(criterios_minimos_info(self.criterio_minimo))
+
+
+    def to_csv_resumen_table(self,**kwargs):
+        """
+        CSV de Resumen
+        """
+        TODAY       =   date.today().strftime("%b-%d-%Y")
+        
+        BASE_DIR    =   kwargs["base_dir"]
+        OUTPUT_DIR  =   BASE_DIR / kwargs.get("output_dir", f"{self.nombre_tabla}_analisis") / f"csv"
+        
+        path        =   Path(OUTPUT_DIR)
+        
+        FILE_NAME   = kwargs.get("file_name",f"{self.nombre_tabla}_{TODAY}")
+        
+        FILE_NAME_OUTPUT_RESUMEN           =   path / f"RESUMEN_{FILE_NAME}.csv"
+        FILE_NAME_OUTPUT_CRITERIO_MINIMO   =   path / f"CRITERIOS_MINIMOS_{FILE_NAME}.csv"
+        FILE_NAME_OUTPUT_CRITERIO_MINIMO_SEGREGADO   =   path / f"CRITERIOS_MINIMOS_SEGREGADO_{FILE_NAME}.csv"
+        
+        files_names =   [   FILE_NAME_OUTPUT_RESUMEN,
+                            FILE_NAME_OUTPUT_CRITERIO_MINIMO
+                        ]
+        
+        
+        if  self.resumen is None:
+            print("Correr el método get_resumen previo a realizar este metodo ")
+            return
+        
+        if self.criterio_minimo is None:
+            self.get_criterios_minimos_resumen()
+        
+        
+        csv_paramas     =   [
+            {
+            "resumen"       :   df.iloc[::-1]   ,
+            "output_dir"    :   OUTPUT_DIR      ,
+            "file_name"     :   file_name       
+            }
+            for df,file_name
+            in  zip([self.resumen, self.criterio_minimo],files_names)
+            
+        ]
+        
+        segregado = [{
+            "resumen"       :   self.segregacion_criterios_minimos.iloc[::-1] ,
+            "output_dir"    :   OUTPUT_DIR      ,
+            "file_name"     :   FILE_NAME_OUTPUT_CRITERIO_MINIMO_SEGREGADO,       
+            "index"         :   True
+        }]
+
+        csv_paramas +=  segregado
+
+        for params in csv_paramas:
+            to_csv_func(**params)
+        
+
+        
+        
+        
+    def total_score_gauge_save(self , **kwargs):
+        """
+        :params
+            columns:list -> lista de columnas para hacer una media de la columna indicada
+        
+        """
+        
+        BASE_DIR    =   kwargs["base_dir"]
+        name        =   self.nombre_tabla
+        
+        OUTPUT_DIR  =   BASE_DIR / kwargs.get("output_dir",f"{name}_analisis") / f"gauge_images"
+        columnas    =   kwargs.get("columns", ["PORCENTAJE DE COMPLETITUD","PORCENTAJE DE EXACTITUD"])
+                    
+        TODAY       =   date.today().strftime("%Y-%m-%d")
+        
+        labels      =   os.getenv("LABELS","No confiable,Poco confiable,Confiable").split(",")
+        colors      =   os.getenv("COLORS",'#E74C3C,#F5CBA7,#58D68D').split(",")
+        
+
+        path = OUTPUT_DIR 
+        
+        validate_output_file(output_dir = path)
+                
+        SCORING = [
+                {   "arrow"     :   arrow_value(score(self.resumen,col)) ,
+                    "title"     :   f"{col.upper()} {score(self.resumen,col)}% {name.upper()} ",
+                    "fname"     :   path / f"{name}_{col}_{TODAY}.png"
+                }
+                for col in columnas
+        ]
+                
+
+        total_criterio_minimo = round((self.score_completitud * self.score_exactitud)/100,2)
+        
+        
+        DATA_SCORING = {
+            "labels":labels,
+            "colors":colors,
+        }
+        
+        
+        TOTAL_SCORING = [
+            {**{
+            "arrow" :   arrow_value(total_criterio_minimo),
+            "title" :   f"{'CRITERIO MINIMO TOTAL'.upper()} {total_criterio_minimo}% {name.upper()} ",
+            "fname" :   path / f"{name}_CRITERIO MINIMO TOTAL_{TODAY}.png"
+            },**DATA_SCORING}
+        ]
+        
+        SCORING += TOTAL_SCORING
+        
+        
+        scoring_to_gauge_params =   [
+            {**DATA_SCORING,**col_score}
+            for col_score in SCORING
+        ]  
+        
+            
+        try:                        
+            for gauge_img in scoring_to_gauge_params:
+                gauge(**gauge_img)
+ 
+        except Exception as e:
+            print("Error en la creacion de los gauges")
+            print(f"{e}")
+
+
+
     def gather_data(self,file_name = None):
         '''
         @paramas
@@ -441,10 +623,11 @@ class DataCleaner:
         }
             
         insercion_data(worksheet_config)
-
- 
         return 
+    
+    
 
+        
     def __inexactos__(self):
         if len(self.inexactos) == 0:
             return 'No data'

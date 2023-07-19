@@ -24,7 +24,7 @@ def completitud(    dataframe:any,
         'REGISTROS TOTALES' : [],
         'CANTIDAD DE INCOMPLETOS' : [],
         'CANTIDAD DE COMPLETOS' : [],
-        'PORCENTAJE COMPLETITUD' : []
+        'PORCENTAJE DE COMPLETITUD' : []
     }
 
     tabla_resumen = pd.DataFrame(headers)
@@ -37,7 +37,7 @@ def completitud(    dataframe:any,
             'REGISTROS TOTALES' : 'int64',
             'CANTIDAD DE INCOMPLETOS' : 'int64',
             'CANTIDAD DE COMPLETOS' : 'int64',
-            'PORCENTAJE COMPLETITUD' : 'float64'
+            'PORCENTAJE DE COMPLETITUD' : 'float64'
     }
 
     # parametros a pasar 
@@ -106,7 +106,7 @@ def completitud_con_rules(  dataframe:any,
                     'REGISTROS TOTALES' : [total_registros],
                     'CANTIDAD DE INCOMPLETOS' : [incompletitud_cantidad_col],
                     'CANTIDAD DE COMPLETOS' : [completitud_cantidad_col],
-                    'PORCENTAJE COMPLETITUD' : [round(completitud_cantidad_col /total_registros * 100 ,2)]
+                    'PORCENTAJE DE COMPLETITUD' : [round(completitud_cantidad_col /total_registros * 100 ,2)]
             }
 
         
@@ -156,7 +156,7 @@ def completitud_default( dataframe:any,
                     'REGISTROS TOTALES' : [total_registros],
                     'CANTIDAD DE INCOMPLETOS' : [incompletitud_cantidad_col],
                     'CANTIDAD DE COMPLETOS' : [completitud_cantidad_col],
-                    'PORCENTAJE COMPLETITUD' : [round(completitud_cantidad_col /total_registros * 100 ,2)]
+                    'PORCENTAJE DE COMPLETITUD' : [round(completitud_cantidad_col /total_registros * 100 ,2)]
             }
 
         row = pd.DataFrame(row_body)
@@ -189,7 +189,7 @@ def completitud_solo_nan( dataframe:any,
                     'REGISTROS TOTALES' : [total_registros],
                     'CANTIDAD DE INCOMPLETOS' : [dataframe[col].isnull().sum(axis = 0)],
                     'CANTIDAD DE COMPLETOS' : [dataframe[col].count()],
-                    'PORCENTAJE COMPLETITUD' : [round(dataframe[col].count() /total_registros * 100 ,2)]
+                    'PORCENTAJE DE COMPLETITUD' : [round(dataframe[col].count() /total_registros * 100 ,2)]
             }
 
         row = pd.DataFrame(row_body)
