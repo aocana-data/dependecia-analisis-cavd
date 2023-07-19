@@ -25,10 +25,10 @@ from .data_frame    import data_frame
  
         
 def read_db_csv(csv_path):
-    return pd.read_csv(csv_path)
+    return pd.read_csv(csv_path,encoding="latin-1")
 
 def read_db_xlsx(xlsx_path):
-    return pd.read_excel(xlsx_path)
+    return pd.read_excel(xlsx_path,encoding="latin-1")
 
 def read_db_engine(**kwargs):
  
