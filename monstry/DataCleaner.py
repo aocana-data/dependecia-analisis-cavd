@@ -75,7 +75,7 @@ class DataCleaner:
 
     #VALORES POR DEFAULT
 
-    path_default    = './monstry/modules/funciones_default/funciones_generales.py'
+    path_default    = './modules/funciones_default/funciones_generales.py'
     chars_null      = [",", ".", "'", "-", "_", ""]
 
     config          =   {
