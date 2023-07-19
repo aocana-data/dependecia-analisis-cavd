@@ -1,6 +1,7 @@
-from pathlib    import Path
-from pprint     import pprint
-from .collapser_rules import collapser
+import os
+
+from pathlib             import    Path
+from .collapser_rules    import    collapser
 
 def set_validadores_exactitud(**kwargs):
     """
@@ -24,19 +25,19 @@ def set_validadores_exactitud(**kwargs):
     if path_funciones is None or path_funciones == "" or len(path_funciones) == 0:
         # ESTA VALIDACION TOMA EL VALOR POR DEFECTO QUE TIENE
         # LA DEPENDECIA
-        path_funciones = Path(BASE_DIR) / PATH_DEFAULT
+        BASE_DIR                 =     os.path.dirname(os.path.dirname(__file__))
+        path_funciones           =     os.path.join(BASE_DIR,self.PATH_DEFAULT)
 
-    custom_functions    =   config.get("extra_custom_functions",None)
-
+    custom_functions    =   config.get("extra_custom_functions","")
+      
     with open(path_funciones,"r",encoding='latin-1') as  f:
         data = f.read()
 
-    if custom_functions is not None or custom_functions != "":
+    if custom_functions != "":
         with open(custom_functions,"r",encoding='latin-1') as  f:
-            custom_functions_data = f.read()
+            custom_functions = f.read()
 
-        data += f"\n\n{custom_functions_data}"
-        print(data)
+    data += f"\n\n{custom_functions_data}"
     
     exec(data,globals())
     
