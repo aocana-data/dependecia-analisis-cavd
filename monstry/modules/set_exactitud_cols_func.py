@@ -1,49 +1,91 @@
-from .process_cb import process_cb
+import os
 
+from pathlib            import Path
+from .collapser_rules   import collapser
 
-
-def set_exactitud_cols_func(rule:tuple,dataset:any,chars_omitir_exactitud, data_types)->list:
+def set_validadores_exactitud(**kwargs):
     """
-    _summary_
-
-    Realiza un analisis de exactitud 
-
-    @params 
-        rule(tupla): valores con las cols que se debe hacer el analisis y fn, la cual se hace el chequeo
-        dataset(dataframe): set de analisis
-
-    @return 
-        return_data(list): lista de dicts con los resultados de los analisis de exactitud
+    @params
+        path_funciones : 
+        path del archivo con las funciones a utilizar para el analisis de exactitud
     """
 
-    return_data =   []
-    inexactos =     {}
-    exactos =       {}
-
-    # desacoplamos las partes fundamentales de la tupla#
-
-    cols , cb_function = rule
+    path_funciones  =   kwargs.get("path_funciones",None)
+    BASE_DIR        =   kwargs["base_dir"]
+    PATH_DEFAULT    =   kwargs["path_default"]
+    config          =   kwargs["config"]
+    rules_defecto   =   kwargs["rules_defecto"]
     
-    for col in cols:
-        res = process_cb(col,cb_function,dataset[cols],chars_omitir_exactitud,data_types)
+    # VALIDAR SI LAS FUNCIONES VIENEN DESDE ALGUNA CONFIGURACION EXTRA
+    # O SI SON DE ALGUN LUGAR ESPECÍFICO, UN ARCHIVO DE CONFIGURACION 
+    # O VALIDADORES NUEVOS
+    
+    
+    
+    if path_funciones is None or path_funciones == "" or len(path_funciones) == 0:
+        # ESTA VALIDACION TOMA EL VALOR POR DEFECTO QUE TIENE
+        # LA DEPENDECIA
+        # path_funciones = PATH_DEFAULT 
+        dir_base        =   os.path.dirname(os.path.dirname(__file__))
+        path_funciones  =   os.path.join(dir_base,PATH_DEFAULT)
+
+    custom_functions        =   config.get("extra_custom_functions","")
+    custom_functions_data   =   ""
+
+    with open(path_funciones,"r",encoding='latin-1') as  f:
+        data = f.read()
         
-        if res.get('inexactos',None) is not None:
+    if custom_functions != "":
+        
+        with open(custom_functions,"r",encoding='latin-1') as  f:
+            custom_functions_data = f.read()
+
+    data += f"\n\n{custom_functions_data}"
+    
+    exec(data,globals())
+    
+    rules       =   config.get('exactitud_reglas', None)    
+    
+    if (rules is None) or (len(rules) == 0):
+        
+        print("""
+        --!-->  VALIDACION DE DATOS POR DEFAULT
+            -------------------------------------------
+            Si el proyecto tiene funciones customizadas, deberán
+            ser cargada el path en el archivo de configuración JSON
+        """)
+        
+        rules   =   { col:fn for col,fn in rules_defecto.items()}
+        
+    else:
+        print("""
+        --!-->  VALIDACION DE DATOS POR CONFIGURACION
+            -------------------------------------------
             
-            inexactos = {
-                **inexactos,
-                **res.get("inexactos")
-            }
-
-        if res.get("exactos",None) is not None:
-            exactos = {
-                **exactos,
-                **res.get("exactos")
-            }
+        """)
         
-        return_data.append(res['data_return'])
+        rules       =   { col:eval(fn) for col,fn in rules.items()}
+        
+    # GENERACION Y DEVOLUCION DE REGLAS
     
-    return {
-        "return_data"   :   return_data,
-        "inexactos"     :   inexactos,
-        "exactos"       :   exactos
-    }
+    try:
+        collapsed_rules =   collapser(rules)
+
+        # OPCION PARA VISUALIZAR LAS COLUMNAS COLAPSADAS
+        
+        display =   {   
+            fn.__name__ : [len(tupla[0]),tupla[0]]
+            for fn,tupla
+            in
+            collapsed_rules.items()
+        }
+
+
+        return collapsed_rules
+
+    except Exception as e:
+        print("ERROR al setearse los validadores de exactitud")
+        print(e)
+        print(f'{type(e)} :  {type(e).__doc__}')
+
+
