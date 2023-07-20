@@ -47,14 +47,9 @@ class BuilderJsonConfig(Builder,InterfaceGetters):
                 if not path_file : 
                     print("No se ha encontrado una ruta para el archivo")
                     return 
-
-                self.query_path =   self.builder[path_file]  
-
-                
-                self.query      =   self.get_query(
-                    path        =   self.query_path ,
-                    base_dir    =   self.BASE_DIR
-                )    
+                    
+                self.query_path =   self.builder[path_file]                
+                self.query      =   None
 
         except Exception as e:
             print(f"ERROR producido en la lectura del archivo de configuracion\n\t{e}")
