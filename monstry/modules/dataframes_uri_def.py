@@ -25,10 +25,28 @@ from .data_frame    import data_frame
  
         
 def read_db_csv(csv_path):
-    return pd.read_csv(csv_path,encoding="latin-1")
+        
+    reader = pd.read_csv(csv_path, sep = None, iterator = True,encoding="latin-1",nrows=10,engine="python")
+    inferred_sep = reader._engine.data.dialect.delimiter
+    
+    data_frame = pd.DataFrame()
+    for index,chunks in enumerate(pd.read_csv(csv_path, sep = inferred_sep ,encoding="latin-1",chunksize=100_000)):
+        """
+        realiza consumo por medio de chunks de registros
+        """
+        data_frame = pd.concat([data_frame,chunks],ignore_index=True,axis=0)
+        print(f"{index} : dataframe with {len(chunks)} rows")
+        
+        
+    return data_frame
 
-def read_db_xlsx(xlsx_path):
+
+    
+
+def read_db_xlsx(xlsx_path):       
     return pd.read_excel(xlsx_path)
+
+
 
 def read_db_engine(**kwargs):
  

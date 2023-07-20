@@ -23,7 +23,7 @@ def criterios_minimos_info(criterio_minimo):
             3:TOP_LIMITS
     }
 
-    LABEL_NO_CONFIABLE , LABEL_POCO_CONFIABLE ,LABEL_CONFIABLE        =   os.getenv("LABELS","No confiable,Poco confiable,Confiable").split(",")
+    LABEL_NO_CONFIABLE , LABEL_POCO_CONFIABLE ,LABEL_CONFIABLE        =   os.getenv("LABELS","No confiable,Poco confiable,Confiable").upper().split(",")
     
     
     confiable       =   criterio_minimo[
@@ -48,15 +48,15 @@ def criterios_minimos_info(criterio_minimo):
     COL  = "COLUMNA"
     
     CRITERIOS_RETURN[LABEL_CONFIABLE]       = {
-        "columnas"      :   " , ".join(list(confiable[COL].to_numpy())),
+        "columnas"      :   ", ".join(list(confiable[COL].to_numpy())),
         "porcentaje"    :   percentil(confiable,criterio_minimo)
     }
     CRITERIOS_RETURN[LABEL_POCO_CONFIABLE]  = {
-        "columnas"      :   " , ".join(list(poco_confiable[COL].to_numpy())),
+        "columnas"      :   ", ".join(list(poco_confiable[COL].to_numpy())),
         "porcentaje"    :   percentil(poco_confiable,criterio_minimo)
     }
     CRITERIOS_RETURN[LABEL_NO_CONFIABLE]    = {
-        "columnas"      :   " , ".join(list(no_confiable[COL].to_numpy())),
+        "columnas"      :   ",".join(list(no_confiable[COL].to_numpy())),
         "porcentaje"    :   percentil(no_confiable,criterio_minimo)        
     }
  

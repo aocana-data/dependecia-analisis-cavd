@@ -1,11 +1,12 @@
 from typing             import  List
+from tabulate           import  tabulate
 from .BulkDataBuilder   import  BulkDataBuilder
 from .BulkDataCleaner   import  BulkDataCleaner
 from .DataCleaner       import  DataCleaner
 
-
-from .modules.bulk_cleaner_files    import bulk_cleaner_postgresql
-from .modules.bulk_cleaner_files    import bulk_cleaner_files
+from .modules.hidden_prints         import  HiddenPrints
+from .modules.bulk_cleaner_files    import  bulk_cleaner_postgresql
+from .modules.bulk_cleaner_files    import  bulk_cleaner_files
 
 
 
@@ -38,17 +39,18 @@ class BulkIterator:
     def bulk_resumen_save(self,**kwargs):
         output_dir  =   kwargs.get("output_dir",None)
         
-        for n,cleaner in enumerate(self.cleaners):
-            try:
-                cleaner.get_resumen()
+        try:
+            
+            for n,cleaner in enumerate(self.cleaners):
+                    cleaner.get_resumen()
+                    
+                    cleaner.to_csv_resumen_table(
+                        output_dir  =   output_dir 
+                    )
                 
-                cleaner.to_csv_resumen_table(
-                    output_dir  =   output_dir 
-            )
-
-                
-            except Exception as e:
-                print(f"ERROR en el {n+1} cleaner\n{e}")
+        except Exception as e:
+            print(f"ERROR en el {n+1} cleaner\n{e}")
+            
 
     def bulk_gauge_save(self,**kwargs):
         output_dir  =   kwargs.get("output_dir",None)
@@ -57,15 +59,26 @@ class BulkIterator:
             if cleaner.resumen is None:
                 cleaner.get_resumen()
             try:
-                
-                cleaner.total_score_gauge_save(
-                    output_dir  =   output_dir ,
-                )
+                with HiddenPrints():
+                    cleaner.total_score_gauge_save(
+                        output_dir  =   output_dir ,
+                    )
 
                 
             except Exception as e:
                 print(f"ERROR en el {n+1} cleaner\n{e}")        
 
         
+    def bulk_print_criterios_minimos(self):
+                
+        for n,cleaner in enumerate(self.cleaners):
+            cleaner.print_criterios_minimos()
         
+    def bulk_print_analisis_to_markdown(self,**kwargs):
+        output_dir  =   kwargs.get("output_dir",None)
+                
+        for n,cleaner in enumerate(self.cleaners):
+            cleaner.print_analisis_to_markdown(
+                output_dir =     output_dir
+            )
     

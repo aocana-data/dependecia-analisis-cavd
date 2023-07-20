@@ -3,9 +3,9 @@ import re
 
 import pandas   as      pd
 import numpy    as      np
-
+from tabulate   import  tabulate
 from pathlib    import  Path
-from datetime   import  date
+from datetime   import  date , datetime
 from dotenv     import  load_dotenv
 
 from datetime   import  datetime
@@ -88,6 +88,7 @@ class DataCleaner:
                         "dtypes":{}
                     }
 
+    
 
     chars_omitir_exactitud:dict     =   None
     DATA_DEFAULT_COLUMNAS:dict      =   None
@@ -153,7 +154,8 @@ class DataCleaner:
         self.CONFIG_FILE_PATH   =   path
         
         self.set_config(self.CONFIG_FILE_PATH)
-        
+        self.criteria_valores_generales     =   {}
+        self.scoring_to_gauge_paths         =   {}
 
         
         texto =f'''
@@ -518,6 +520,11 @@ class DataCleaner:
 
             self.min_criterio_minimo                =   self.criterio_minimo[["COLUMNA","PORCENTAJE DE COMPLETITUD","PORCENTAJE DE EXACTITUD","CRITERIO MINIMO"]].set_index("COLUMNA").iloc[::-1]
             
+            
+            self.criteria_valores_generales["SCORE COMPLETITUD"] =   self.min_criterio_minimo["PORCENTAJE DE COMPLETITUD"].mean()
+            self.criteria_valores_generales["SCORE EXACTITUD"]   =   self.min_criterio_minimo["PORCENTAJE DE EXACTITUD"].mean()
+            self.criteria_valores_generales["SCORE CRITERIO"]    =   self.min_criterio_minimo["CRITERIO MINIMO"].mean()
+            
     
 
         
@@ -614,9 +621,10 @@ class DataCleaner:
 
         csv_paramas +=  segregado
 
-        for params in csv_paramas:
-            to_csv_func(**params)
         
+        for params in csv_paramas:
+                to_csv_func(**params)
+            
         # GUARDA LA CONFIGURACION USADA PARA EL ANALISIS
         self.__save_last_config_file()
         
@@ -648,14 +656,14 @@ class DataCleaner:
                 
         SCORING = [
                 {   "arrow"     :   arrow_value(score(self.resumen,col)) ,
-                    "title"     :   f"{col.upper()} {score(self.resumen,col)}% {name.upper()} ",
+                    "title"     :   f"\n{name.upper()}\n{col.upper()}\n{score(self.resumen,col)}%",
                     "fname"     :   path / f"{name}_{col}_{TODAY}.png"
                 }
                 for col in columnas
         ]
                 
 
-        total_criterio_minimo = self.vectorizacion_cb(self.score_completitud, self.score_exactitud)
+        total_criterio_minimo = round(self.criteria_valores_generales["SCORE CRITERIO"],2)
         
         
         DATA_SCORING = {
@@ -667,7 +675,7 @@ class DataCleaner:
         TOTAL_SCORING = [
             {**{
             "arrow" :   arrow_value(total_criterio_minimo),
-            "title" :   f"{'CRITERIO MINIMO TOTAL'.upper()} {total_criterio_minimo}% {name.upper()} ",
+            "title" :   f"\n{name.upper()}\n{'CRITERIO MINIMO TOTAL'.upper()}\n{total_criterio_minimo}% ",
             "fname" :   path / f"{name}_CRITERIO MINIMO TOTAL_{TODAY}.png"
             },**DATA_SCORING}
         ]
@@ -680,7 +688,10 @@ class DataCleaner:
             for col_score in SCORING
         ]  
         
-            
+        self.scoring_to_gauge_paths  =  {
+            score["title"] : score["fname"]
+            for score in scoring_to_gauge_params}  
+        
         try:   
 
             for gauge_img in scoring_to_gauge_params:
@@ -814,3 +825,94 @@ class DataCleaner:
         with open(path_out,'w') as output:
             output.write(joiner_text_functions)
         
+    def print_criterios_minimos(self):
+        if self.resumen is None:
+            with HiddenPrints():
+                self.get_resumen()
+                
+        print(f"""
+TABLA: {self.nombre_tabla.upper()} 
+CANTIDAD DE REGISTROS ANALIZADOS: {self.cantidad_registros} REGISTROS
+
+-   COMPLETITUD GENERAL         : {round(self.criteria_valores_generales["SCORE COMPLETITUD"],2)} %
+-   EXACTITUD   GENERAL         : {round(self.criteria_valores_generales["SCORE EXACTITUD"],2)} %
+-   CRITERIO    MINIMO GENERAL  : {round(self.criteria_valores_generales["SCORE CRITERIO"],2)} %
+        """)
+        
+        print(tabulate(self.min_criterio_minimo,headers="keys",tablefmt="rounded_outline",floatfmt=".2f"))
+        print("""
+              
+        SEGREGACION POR CRITERIOS MINIMOS POR COLUMNAS
+        
+        """)
+        
+        print(tabulate(self.segregacion_criterios_minimos,headers="keys",tablefmt="rounded_outline",floatfmt=".2f"))
+        
+        print('-'*120)
+    
+    def print_analisis_to_markdown(self,**kwargs):
+        
+        if self.resumen is None:
+            with HiddenPrints():
+                self.get_resumen()
+                
+        texto_resumen = f"""
+TABLA ANALIZADA:  {self.nombre_tabla.upper()} 
+---
+
+## CANTIDAD DE REGISTROS ANALIZADOS: {self.cantidad_registros} REGISTROS
+    
+*   COMPLETITUD GENERAL         : {round(self.criteria_valores_generales["SCORE COMPLETITUD"],2)} %
+*   EXACTITUD   GENERAL         : {round(self.criteria_valores_generales["SCORE EXACTITUD"],2)} %
+*   CRITERIO    MINIMO GENERAL  : {round(self.criteria_valores_generales["SCORE CRITERIO"],2)} %
+
+---
+
+"""
+
+        criterios_min =   tabulate(self.min_criterio_minimo,headers="keys",tablefmt="github",floatfmt=".2f")
+        
+        segregacion = [
+            tabulate(self.segregacion_criterios_minimos[[col]][::-1],headers="keys",tablefmt="github")
+            for col
+            in ["CONFIABLE", "POCO CONFIABLE","NO CONFIABLE"]
+        ]
+
+    
+        FILE_NAME   = kwargs.get("file_name",f"{self.nombre_tabla}.md")
+        OUTPUT_DIR  =   Path(self.BASE_DIR) / kwargs.get("output_dir", f"{self.nombre_tabla}_analisis") /f"{self.nombre_tabla}"         
+        path        =   Path(OUTPUT_DIR)
+        
+        with HiddenPrints():
+            validate_output_file(output_dir = path)
+            
+        image_scoring = "\n## MEDIDORES\n<p float='left'>"
+        
+        for title,path_ in self.scoring_to_gauge_paths.items():
+            path_           =   f"./gauge_images/{str(path_).split('/')[-1]}"
+            title           =   title.replace("\n","_")
+            image_scoring  +=   f'<img src="{path_}" alt="{title}" style="width:300px;"/>\n'
+            
+        image_scoring+= "</p>\n\n"
+        
+        looper_lines = "\n\n\n---\n\n\n"
+        
+        TODAY       =   datetime.today().strftime("%m/%d/%Y, %H:%M:%S")
+        
+        with open(path /FILE_NAME,"w") as f:
+            f.writelines(texto_resumen)
+            f.writelines(image_scoring)
+            f.writelines("\n"*3)
+            f.writelines("\n## TABLA DE COMPLETITUD - EXACTITUD - CRITERIO MINIMO \n\n")
+            f.writelines(
+                criterios_min
+            )
+            f.writelines("\n"*3)
+            f.writelines("\n## SEGREGACION POR COLUMNAS \n\n")
+            for _ in segregacion:
+                f.writelines("\n\n\n")
+                f.writelines(_)
+            f.writelines(looper_lines)
+            f.writelines(f"__FECHA CREACION__ : {TODAY}")
+        
+        print("CREACION MARKDOWN FINALIZADA")
