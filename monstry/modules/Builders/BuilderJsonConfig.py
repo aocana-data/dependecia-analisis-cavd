@@ -1,5 +1,5 @@
+import re
 from pathlib    import  Path
-from uuid       import uuid4
 
 from .Builder           import  Builder     
 from .InteraceGetters   import  InterfaceGetters  
@@ -23,7 +23,7 @@ class BuilderJsonConfig(Builder,InterfaceGetters):
 
         self.builder    =   self.config["builder"]
         self.engine     =   self.builder["engine"]
-        self.table      =   kwargs.get("table",f"DESCONOCIDA{uuid4().hex}")  
+        self.table      =   kwargs.get("table",None)  
         
         self.database   =   kwargs.get("database",None)
         
@@ -47,10 +47,14 @@ class BuilderJsonConfig(Builder,InterfaceGetters):
                 if not path_file : 
                     print("No se ha encontrado una ruta para el archivo")
                     return 
-                    
-                self.query_path =   self.builder[path_file]                
-                self.query      =   None
 
+                self.query_path =   self.builder[path_file]  
+                self.query      =   None
+                
+                if self.table is None:
+                    regexp_file_name = '[ \w-]+?(?=\.)'
+                    self.table       =   re.search(regexp_file_name, self.query_path)[0]
+                
         except Exception as e:
             print(f"ERROR producido en la lectura del archivo de configuracion\n\t{e}")
             
@@ -71,10 +75,3 @@ class BuilderJsonConfig(Builder,InterfaceGetters):
             
         except Exception as e:
             print(f"ERROR producido en la obtencion de la query desde un archivo\n\t{e}")
-
-
-
-
-
-    
-    
