@@ -899,7 +899,7 @@ TABLA ANALIZADA:  {self.nombre_tabla.upper()}
         
         TODAY       =   datetime.today().strftime("%m/%d/%Y, %H:%M:%S")
         
-        with open(path /FILE_NAME,"w") as f:
+        with open(path /FILE_NAME,"w", encoding='utf-8') as f:
             f.writelines(texto_resumen)
             f.writelines(image_scoring)
             f.writelines("\n"*3)
