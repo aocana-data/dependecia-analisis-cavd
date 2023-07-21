@@ -64,6 +64,10 @@ class BulkDataBuilder:
             if self.databases is None or len(self.databases) ==0:
                 print('No se han generado los dataframes')
                 return
+            
+            print(f"""
+            >>> CANTIDAD DE TABLAS A ANALIZAR : {len(self.databases)}<<<
+            """)
 
             print('Se ha cargado efectivamente el dataframe')
 

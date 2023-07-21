@@ -20,21 +20,21 @@ def get_query_list(database_schema, tables , limit ):
     ## TODO => mejorar la forma como se piden los datos, permitiendo obtener ciertas cantidades muestrales
     if limit is not None:
         return [
-                f"""
+                f'''
                 SELECT * 
                 FROM
-                {database_schema}.{table}
+                "{database_schema}"."{table}"
                 LIMIT {limit}
-                """
+                '''
                 for table in tables 
             ] 
         
     return [
-        f"""
+        f'''
         SELECT * 
         FROM
-        {database_schema}.{table}
-        """
+        "{database_schema}"."{table}"
+        '''
         for table in tables 
     ] 
 

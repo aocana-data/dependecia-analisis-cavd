@@ -5,6 +5,29 @@ from .modules.check_new_config_file import  check_new_config_file
 
 
 class BulkDataCleaner(DataCleaner):
+    PATH_DEFAULT    = './modules/funciones_default/funciones_generales.py'
+    
+    chars_null      = [",", ".", "'", "-", "_", ""]
+
+    config          =   {
+                        "chars_null": [",", ".", "'", "-", "_", ""],
+                        "exactitud_reglas" :{},
+                        "completitud_reglas":{},
+                        "dtypes":{}
+                    }
+
+    chars_omitir_exactitud:dict     =   None
+    DATA_DEFAULT_COLUMNAS:dict      =   None
+    segregacion_criterios_minimos   =   None
+    score_completitud               =   None
+    criterio_minimo                 =   None
+    min_criterio_minimo             =   None
+    score_exactitud                 =   None
+    completitud                     =   None
+    exactitud                       =   None
+    resumen                         =   None
+    rules                           =   None
+    vectorizacion_cb                =   lambda self, completitud , exactitud : round((completitud * exactitud)/100,2)
     
     def __init__(self, **kwargs) -> None: 
         self.builder:LinkerDataBuilder = kwargs["builder"]
@@ -47,6 +70,8 @@ class BulkDataCleaner(DataCleaner):
         self.CONFIG_FILE_PATH   =   path
         
         self.set_config(self.CONFIG_FILE_PATH)
+        self.criteria_valores_generales     =   {}
+        self.scoring_to_gauge_paths         =   {}
         
         data_print  =   f"""
         OBJETO DE ANALISIS:

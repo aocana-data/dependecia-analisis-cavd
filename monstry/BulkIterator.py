@@ -37,7 +37,7 @@ class BulkIterator:
         
         
     def bulk_resumen_save(self,**kwargs):
-        output_dir  =   kwargs.get("output_dir",None)
+        output_dir  =   kwargs.get("output_dir","./")
         
         try:
             
@@ -53,7 +53,7 @@ class BulkIterator:
             
 
     def bulk_gauge_save(self,**kwargs):
-        output_dir  =   kwargs.get("output_dir",None)
+        output_dir  =   kwargs.get("output_dir","./")
         
         for n,cleaner in enumerate(self.cleaners):
             if cleaner.resumen is None:

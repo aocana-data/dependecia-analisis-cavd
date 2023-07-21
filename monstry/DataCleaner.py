@@ -915,4 +915,7 @@ TABLA ANALIZADA:  {self.nombre_tabla.upper()}
             f.writelines(looper_lines)
             f.writelines(f"__FECHA CREACION__ : {TODAY}")
         
-        print("CREACION MARKDOWN FINALIZADA")
+        print(f"""
+        >>> CREACION MARKDOWN FINALIZADA PARA {self.nombre_tabla.upper()}
+            UBICACION : {path}
+        """)
