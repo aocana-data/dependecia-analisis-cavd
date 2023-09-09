@@ -1,0 +1,13 @@
+{
+    "builder": { "engine": "athena", "path": "./athena_config/query.sql" },
+    "exactitud_validadores": "",
+    "exactitud_reglas": {},
+    "chars_null": [".", "", "-"],
+    "completitud_reglas": {
+        "rules": {}
+    },
+    "dtypes": {},
+    "add_general": true,
+    "grouped_by": ["base_origen_cursada"],
+    "not_nullish": { "base_origen_cursada": "NO DETERMINADO" }
+}
