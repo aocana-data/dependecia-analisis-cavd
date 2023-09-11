@@ -459,6 +459,9 @@ class DataCleaner:
             self.__save_last_config_file()
 
         return df
+    
+    def save_grouped_results(self):
+            self.__to_csv_agg_data()
 
     def __get_agg_criterio_minimo(self, **kwargs):
         with HiddenPrints():
@@ -485,6 +488,7 @@ class DataCleaner:
 
         df = self.__get_agg_criterio_minimo()
 
+
         if len(kwargs) == 0:
             print(">> SIN FILTROS")
             return df
@@ -498,6 +502,7 @@ class DataCleaner:
 
         print(">> POSIBLEMENTE ESE CAMPO DE FILTRADO REQUERIDO NO ESTÉ CONTEMPLADO")
         return
+
 
     def get_completitud(self):
         print("ANALISIS DE COMPLETITUD")
@@ -848,6 +853,58 @@ class DataCleaner:
             path=self.NEW_CONFIG_FILE,
             json_to_save=config_json_file
         )
+        
+        
+    def __to_csv_agg_data(self,**kwargs):
+        print(f"{'-'*70}\nTABLA ANALIZADA : {self.nombre_tabla.upper()}\n")
+
+        TODAY = date.today().strftime("%b-%d-%Y")
+        OUTPUT_DIR = Path(self.BASE_DIR) / \
+            kwargs.get(
+                "output_dir",f"{self.nombre_tabla}_analisis"
+            ) / \
+            f"{self.nombre_tabla}" / f"csv"
+
+        path = Path(OUTPUT_DIR)
+        
+        FILE_NAME = kwargs.get("file_name", f"{self.nombre_tabla}_{TODAY}")
+        
+        FILE_GROUPED = [
+                path / f"GROUPED_RESUMEN_GENERAL_{FILE_NAME}.csv"
+            ,   path / f"GROUPED_RESUMEN_COMPLETITUD_{FILE_NAME}.csv"
+            ,   path / f"GROUPED_RESUMEN_EXACTITUD_{FILE_NAME}.csv"
+            ,   path / f"GROUPED_RESUMEN_CRITERIO_MINIMO_{FILE_NAME}.csv"
+        ]
+        
+        DF_DATA = [
+                self.get_agg_resumen().reset_index()
+            ,   self.get_agg_completitud().reset_index()
+            ,   self.get_agg_exactitud().reset_index()
+            ,   self.criterio_minimos_agg().reset_index()
+        ]
+        
+        GROUPED_DATA = [
+            {
+                "resumen": df,
+                "output_dir":  OUTPUT_DIR,
+                "file_name":   path_file,
+                "index":   True
+            }
+            for df , path_file  
+            in 
+            zip(DF_DATA,FILE_GROUPED)
+        ]
+        
+        try:
+            
+            for params in GROUPED_DATA:
+                to_csv_func(**params)  
+                
+        except Exception as e:
+            print(" >>> ERROR AL GENERAR LOS ARCHIVOS CSV")
+            print(f"{e}")
+
+                  
 
     def to_csv_resumen_table(self, **kwargs):
         """
@@ -919,6 +976,9 @@ class DataCleaner:
         for params in csv_paramas:
             to_csv_func(**params)
 
+        # GUARDA ARCHIVOS DE AGRUPADOS
+        self.__to_csv_agg_data()
+        
         # GUARDA LA CONFIGURACION USADA PARA EL ANALISIS
         self.__save_last_config_file()
 
