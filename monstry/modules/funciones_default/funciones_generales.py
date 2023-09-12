@@ -353,5 +353,17 @@ def custom_comprobando_cuit_cuil(variable):
     ponderacion = verificador_modulo_ponderado(f"{TIPO}{DNI}")
     
     return DIGITO_VERIFICADOR in validador_digito(ponderacion) 
-    
-    
+
+
+def comprobando_id_broker(variable):
+    DOC = ["DNI", "LC", "LE", "PE", "CE", "NN", "CI", "CUIT", "CUIL"]
+    SEX_ADMITIDOS = ["F", "X", "M"]
+    PAIS = ["ARG", "NN"]
+
+    regex_pattern = f"^({'|'.join(DOC)})(\d)" + "{8}" + \
+        f"({'|'.join(SEX_ADMITIDOS)})({'|'.join(PAIS)})$"
+
+    return True if re.search(regex_pattern, variable, re.IGNORECASE) else False
+
+
+
