@@ -41,9 +41,10 @@ def read_db_engine(**kwargs):
     builder = kwargs.get("builder", None)
     cnx = kwargs.get("cnx", None)
     query = kwargs.get("query", None)
+    nombre_tabla = kwargs.get("nombre_tabla", None)
 
     if engine == "athena":
-        return read_db_athena(query=query)
+        return read_db_athena(query=query,nombre_tabla=nombre_tabla)
 
     if engine == "csv":
         path_local = builder["csv_path"]

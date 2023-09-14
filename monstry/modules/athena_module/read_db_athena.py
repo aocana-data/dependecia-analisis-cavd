@@ -9,7 +9,13 @@ load_dotenv()
 
 def read_db_athena(**kwargs):
 
-    NOMBRE_TABLA = os.getenv("NOMBRE_TABLA", "cache")
+
+    NOMBRE_TABLA = kwargs.get(
+        "nombre_tabla" , 
+        os.getenv("NOMBRE_TABLA", "cache")
+    )
+    
+    
     PARQUET_CSV = f"athena_{NOMBRE_TABLA}.parquet"
 
     if os.path.isfile(PARQUET_CSV):

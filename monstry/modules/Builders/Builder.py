@@ -11,6 +11,7 @@ class Builder:
                                         cnx     = self.cnx,
                                         query   = self.query,
                                         engine  = self.engine
+                                        nombre_tabla    = self.table
                     )
                 
             if self.database is None:
