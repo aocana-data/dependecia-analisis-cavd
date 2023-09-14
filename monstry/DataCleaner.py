@@ -141,7 +141,7 @@ class DataCleaner:
         self.get_config_file = builder.get_config_path()
 
         # AGREGADO DE NOMBRE DE TABLA Y COLUMNAS DERIVADAS DEL BUILDER
-        if not builder.get_table():
+        if not bool(builder.get_table()):
             self.nombre_tabla = kwargs.get("nombre_tabla", "DESCONOCIDA")
         else:
             self.nombre_tabla = builder.get_table()

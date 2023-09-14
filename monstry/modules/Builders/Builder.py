@@ -10,7 +10,7 @@ class Builder:
                                         builder = self.builder,
                                         cnx     = self.cnx,
                                         query   = self.query,
-                                        engine  = self.engine
+                                        engine  = self.engine,
                                         nombre_tabla    = self.table
                     )
                 
