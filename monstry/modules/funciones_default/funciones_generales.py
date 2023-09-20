@@ -416,6 +416,7 @@ def custom_comprobando_cuit_cuil(variable):
 
     return DIGITO_VERIFICADOR in validador_digito(ponderacion)
 
+
 def comprobando_id_broker(variable):
     DOC = ["DNI", "LC", "LE", "PE", "CE", "NN", "CI", "CUIT", "CUIL"]
     SEX_ADMITIDOS = ["F", "X", "M"]

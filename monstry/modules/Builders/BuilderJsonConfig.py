@@ -32,7 +32,8 @@ class BuilderJsonConfig(Builder, InterfaceGetters):
                 if not self.engine == "athena":
                     self.cnx = use_env_files(cnx=self.builder["cnx"])
 
-                self.cnx = {}
+                else:
+                    self.cnx = {}
 
                 if self.builder.get("path", None) is not None:
                     self.query = self.get_query(
