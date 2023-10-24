@@ -29,11 +29,19 @@ class BotoModule:
         self.log:bool= kwargs.get("log",False)
         self.profile_name:str = kwargs.get("profile_name","development") 
         self.database:str = kwargs.get("database")
-        self.bucket_output_location:str =  kwargs.get("bucket_output_location")
+        self.bucket_output_location:str = self.bucket_checker(kwargs.get("bucket_output_location"))
         self.region:str = kwargs.get("region")
         self.key_path:str = kwargs.get("key_path","modeler/athena/")
         self.query_bucket : str = kwargs.get("query_bucket","development-athena-queries-workgroups-piba-dl")
+    
+    def bucket_checker(bucket:str)->str:
+        regexp = "s3://.+/$"
 
+        if not re.match(regexp,bucket):
+            return f"s3://{bucket}/"
+
+        return bucket
+    
     def cleaner_dataframe_to_athena(self, df):
         df.columns = [   
             "_".join(col) for col in df.columns.to_flat_index()
