@@ -158,7 +158,7 @@ class BotoModule:
             """
 
             table       =   kwargs.get("table") 
-            dataframe   =   kwargs.get("dataframe",) 
+            dataframe   =   kwargs.get("dataframe") 
             schema      =   kwargs.get("schema","caba-piba-staging-zone-db") 
 
 
