@@ -34,7 +34,7 @@ class BotoModule:
         self.key_path:str = kwargs.get("key_path","modeler/athena/")
         self.query_bucket : str = kwargs.get("query_bucket","development-athena-queries-workgroups-piba-dl")
     
-    def bucket_checker(bucket:str)->str:
+    def bucket_checker(self, bucket:str)->str:
         regexp = "s3://.+/$"
 
         if not re.match(regexp,bucket):
