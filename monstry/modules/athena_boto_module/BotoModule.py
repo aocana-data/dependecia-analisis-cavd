@@ -102,8 +102,7 @@ class BotoModule:
         format= kwargs.get("format", "parquet")
         filename= kwargs.get("filename", "test")
         index = kwargs.get("index",False)
-        bucket = kwargs.get("bucket",False)
-
+        bucket = kwargs.get("bucket",'development-athena-queries-workgroups-piba-dl')
         boto3.setup_default_session(profile_name=self.profile_name)
         filename = filename + '.' + format
 
