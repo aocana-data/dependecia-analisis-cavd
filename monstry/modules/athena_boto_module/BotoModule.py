@@ -56,9 +56,9 @@ class BotoModule:
 
         params = {
             "QueryString":q_status,
-            "QueryExecutionContext":{"Database": "caba-piba-raw-zone-db"},
+            "QueryExecutionContext":{"Database": self.database},
             "ResultConfiguration":{
-                "OutputLocation": 's3://development-athena-queries-workgroups-piba-dl/modeler/athena/',
+                "OutputLocation": f's3://{self.query_bucket}/modeler/athena/',
                 "EncryptionConfiguration": 
                     {"EncryptionOption": "SSE_S3"},
             }
