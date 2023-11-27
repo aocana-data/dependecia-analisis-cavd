@@ -65,5 +65,5 @@ def read_db_athena(**kwargs):
 
     except Exception as e:
         print(f"""
-        >>> ERROR 
+        >>>  ERROR IN ATHENA AWS WRANGLER MODULE 
         {e}""")
